@@ -15,7 +15,7 @@ package test.others.algorithm;
 
 import java.nio.ByteBuffer;
 
-import com.firenio.baseio.common.UnsafeUtil;
+import com.firenio.baseio.common.Unsafe;
 
 //FIXME read byte by array[i] instead of unsafe
 public final class Lz4RawDecompressor {
@@ -34,9 +34,9 @@ public final class Lz4RawDecompressor {
 
     public static int decompress(byte[] input, int inputOffset, int inputLength, byte[] output,
             int outputOffset, int maxOutputLength) throws MalformedInputException {
-        long inputAddress = UnsafeUtil.ARRAY_BASE_OFFSET + inputOffset;
+        long inputAddress = Unsafe.ARRAY_BASE_OFFSET + inputOffset;
         long inputLimit = inputAddress + inputLength;
-        long outputAddress = UnsafeUtil.ARRAY_BASE_OFFSET + outputOffset;
+        long outputAddress = Unsafe.ARRAY_BASE_OFFSET + outputOffset;
         long outputLimit = outputAddress + maxOutputLength;
 
         return decompress(input, inputAddress, inputLimit, output, outputAddress, outputLimit);
@@ -56,21 +56,21 @@ public final class Lz4RawDecompressor {
 
         if (outputAddress == outputLimit) {
             if (inputLimit - inputAddress == 1
-                    && UnsafeUtil.getByte(inputBase, inputAddress) == 0) {
+                    && Unsafe.getByte(inputBase, inputAddress) == 0) {
                 return 0;
             }
             return -1;
         }
 
         while (input < inputLimit) {
-            final int token = UnsafeUtil.getByte(inputBase, input++) & 0xFF;
+            final int token = Unsafe.getByte(inputBase, input++) & 0xFF;
 
             // decode literal length
             int literalLength = token >>> 4; // top-most 4 bits of token
             if (literalLength == 0xF) {
                 int value;
                 do {
-                    value = UnsafeUtil.getByte(inputBase, input++) & 0xFF;
+                    value = Unsafe.getByte(inputBase, input++) & 0xFF;
                     literalLength += value;
                 } while (value == 255 && input < inputLimit - 15);
             }
@@ -91,7 +91,7 @@ public final class Lz4RawDecompressor {
                 }
 
                 // slow, precise copy
-                UnsafeUtil.copyMemory(inputBase, input, outputBase, output, literalLength);
+                Unsafe.copyMemory(inputBase, input, outputBase, output, literalLength);
                 input += literalLength;
                 output += literalLength;
                 break;
@@ -99,7 +99,7 @@ public final class Lz4RawDecompressor {
 
             // fast copy. We may overcopy but there's enough room in input and output to not overrun them
             do {
-                UnsafeUtil.putLong(outputBase, output, UnsafeUtil.getLong(inputBase, input));
+                Unsafe.putLong(outputBase, output, Unsafe.getLong(inputBase, input));
                 input += SIZE_OF_LONG;
                 output += SIZE_OF_LONG;
             } while (output < literalOutputLimit);
@@ -108,7 +108,7 @@ public final class Lz4RawDecompressor {
 
             // get offset
             // we know we can read two bytes because of the bounds check performed before copying the literal above
-            int offset = UnsafeUtil.getShort(inputBase, input) & 0xFFFF;
+            int offset = Unsafe.getShort(inputBase, input) & 0xFFFF;
             input += SIZE_OF_SHORT;
 
             long matchAddress = output - offset;
@@ -126,7 +126,7 @@ public final class Lz4RawDecompressor {
                         throw new MalformedInputException(input - inputAddress);
                     }
 
-                    value = UnsafeUtil.getByte(inputBase, input++) & 0xFF;
+                    value = Unsafe.getByte(inputBase, input++) & 0xFF;
                     matchLength += value;
                 } while (value == 255);
             }
@@ -143,23 +143,23 @@ public final class Lz4RawDecompressor {
                 int increment32 = DEC_32_TABLE[offset];
                 int decrement64 = DEC_64_TABLE[offset];
 
-                UnsafeUtil.putByte(outputBase, output,
-                        UnsafeUtil.getByte(outputBase, matchAddress));
-                UnsafeUtil.putByte(outputBase, output + 1,
-                        UnsafeUtil.getByte(outputBase, matchAddress + 1));
-                UnsafeUtil.putByte(outputBase, output + 2,
-                        UnsafeUtil.getByte(outputBase, matchAddress + 2));
-                UnsafeUtil.putByte(outputBase, output + 3,
-                        UnsafeUtil.getByte(outputBase, matchAddress + 3));
+                Unsafe.putByte(outputBase, output,
+                        Unsafe.getByte(outputBase, matchAddress));
+                Unsafe.putByte(outputBase, output + 1,
+                        Unsafe.getByte(outputBase, matchAddress + 1));
+                Unsafe.putByte(outputBase, output + 2,
+                        Unsafe.getByte(outputBase, matchAddress + 2));
+                Unsafe.putByte(outputBase, output + 3,
+                        Unsafe.getByte(outputBase, matchAddress + 3));
                 output += SIZE_OF_INT;
                 matchAddress += increment32;
 
-                UnsafeUtil.putInt(outputBase, output, UnsafeUtil.getInt(outputBase, matchAddress));
+                Unsafe.putInt(outputBase, output, Unsafe.getInt(outputBase, matchAddress));
                 output += SIZE_OF_INT;
                 matchAddress -= decrement64;
             } else {
-                UnsafeUtil.putLong(outputBase, output,
-                        UnsafeUtil.getLong(outputBase, matchAddress));
+                Unsafe.putLong(outputBase, output,
+                        Unsafe.getLong(outputBase, matchAddress));
                 matchAddress += SIZE_OF_LONG;
                 output += SIZE_OF_LONG;
             }
@@ -171,20 +171,20 @@ public final class Lz4RawDecompressor {
                 }
 
                 while (output < fastOutputLimit) {
-                    UnsafeUtil.putLong(outputBase, output,
-                            UnsafeUtil.getLong(outputBase, matchAddress));
+                    Unsafe.putLong(outputBase, output,
+                            Unsafe.getLong(outputBase, matchAddress));
                     matchAddress += SIZE_OF_LONG;
                     output += SIZE_OF_LONG;
                 }
 
                 while (output < matchOutputLimit) {
-                    UnsafeUtil.putByte(outputBase, output++,
-                            UnsafeUtil.getByte(outputBase, matchAddress++));
+                    Unsafe.putByte(outputBase, output++,
+                            Unsafe.getByte(outputBase, matchAddress++));
                 }
             } else {
                 do {
-                    UnsafeUtil.putLong(outputBase, output,
-                            UnsafeUtil.getLong(outputBase, matchAddress));
+                    Unsafe.putLong(outputBase, output,
+                            Unsafe.getLong(outputBase, matchAddress));
                     matchAddress += SIZE_OF_LONG;
                     output += SIZE_OF_LONG;
                 } while (output < matchOutputLimit);
@@ -203,13 +203,13 @@ public final class Lz4RawDecompressor {
         long inputLimit;
         if (input.isDirect()) {
             inputBase = null;
-            long address = UnsafeUtil.addressOffset(input);
+            long address = Unsafe.addressOffset(input);
             inputAddress = address + input.position();
             inputLimit = address + input.limit();
         } else if (input.hasArray()) {
             inputBase = input.array();
-            inputAddress = UnsafeUtil.ARRAY_BASE_OFFSET + input.arrayOffset() + input.position();
-            inputLimit = UnsafeUtil.ARRAY_BASE_OFFSET + input.arrayOffset() + input.limit();
+            inputAddress = Unsafe.ARRAY_BASE_OFFSET + input.arrayOffset() + input.position();
+            inputLimit = Unsafe.ARRAY_BASE_OFFSET + input.arrayOffset() + input.limit();
         } else {
             throw new IllegalArgumentException(
                     "Unsupported input ByteBuffer implementation " + input.getClass().getName());
@@ -220,13 +220,13 @@ public final class Lz4RawDecompressor {
         long outputLimit;
         if (output.isDirect()) {
             outputBase = null;
-            long address = UnsafeUtil.addressOffset(output);
+            long address = Unsafe.addressOffset(output);
             outputAddress = address + output.position();
             outputLimit = address + output.limit();
         } else if (output.hasArray()) {
             outputBase = output.array();
-            outputAddress = UnsafeUtil.ARRAY_BASE_OFFSET + output.arrayOffset() + output.position();
-            outputLimit = UnsafeUtil.ARRAY_BASE_OFFSET + output.arrayOffset() + output.limit();
+            outputAddress = Unsafe.ARRAY_BASE_OFFSET + output.arrayOffset() + output.position();
+            outputLimit = Unsafe.ARRAY_BASE_OFFSET + output.arrayOffset() + output.limit();
         } else {
             throw new IllegalArgumentException(
                     "Unsupported output ByteBuffer implementation " + output.getClass().getName());

@@ -83,20 +83,20 @@ public class HttpProxyServer {
                         @Override
                         public void accept(NioSocketChannel ch, Frame frame) throws Exception {
                             ClientHttpFrame res = (ClientHttpFrame) frame;
-                            for(IntEntry<String> header : res.getResponse_headers().entries()){
+                            for (IntEntry<String> header : res.getResponse_headers().entries()) {
                                 if (header.value() == null) {
                                     continue;
                                 }
                                 f.setResponseHeader(header.key(), header.value().getBytes());
                             }
-                            f.getResponseHeaders().remove(HttpHeader.Content_Length.getId());
+                            f.removeResponseHeader(HttpHeader.Content_Length);
                             if (res.getContent() != null) {
                                 f.write(res.getContent());
-                            }else if("chunked".equalsIgnoreCase(res.getResponse_headers().get(HttpHeader.Transfer_Encoding.getId()))){
-                                f.getResponseHeaders().remove(HttpHeader.Transfer_Encoding.getId()); 
-                                f.getResponseHeaders().remove(HttpHeader.Content_Encoding.getId()); 
-                                f.write("server response is chunked, not supported now.".getBytes());
-                                 
+                            } else if (res.isChunked()) {
+                                f.removeResponseHeader(HttpHeader.Transfer_Encoding);
+                                f.removeResponseHeader(HttpHeader.Content_Encoding);
+                                f.write("not support chunked now.".getBytes());
+
                             }
                             ch_src.flush(f);
                             ch.close();
@@ -106,7 +106,8 @@ public class HttpProxyServer {
                     context.addChannelEventListener(new LoggerChannelOpenListener());
                     context.connect((ch, ex) -> {
                         if (ex == null) {
-                            ClientHttpFrame req = new ClientHttpFrame(f.getRequestURL(), f.getMethod());
+                            ClientHttpFrame req = new ClientHttpFrame(f.getRequestURL(),
+                                    f.getMethod());
                             req.setRequestHeaders(f.getRequestHeaders());
                             req.getRequestHeaders().remove(HttpHeader.Proxy_Connection.getId());
                             if (f.getMethod() == HttpMethod.POST) {

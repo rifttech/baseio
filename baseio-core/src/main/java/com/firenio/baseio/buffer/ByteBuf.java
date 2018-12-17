@@ -20,16 +20,16 @@ import java.nio.ByteBuffer;
 import com.firenio.baseio.Releasable;
 
 public interface ByteBuf extends Releasable {
-    
+
     byte absByte(int pos);
 
     int absLimit();
 
     ByteBuf absLimit(int limit);
-    
+
     int absPos();
 
-    ByteBuf absPos(int pos);
+    ByteBuf absPos(int absPos);
 
     byte[] array();
 
@@ -111,9 +111,15 @@ public interface ByteBuf extends Releasable {
 
     int indexOf(byte b);
 
-    int indexOf(int pos, byte b);
+    int indexOf(byte b, int absPos);
+
+    int indexOf(byte b, int absPos, int size);
 
     int lastIndexOf(byte b);
+    
+    int lastIndexOf(byte b, int absPos);
+
+    int lastIndexOf(byte b, int absPos, int size);
 
     int limit();
 

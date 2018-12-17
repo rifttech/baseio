@@ -30,6 +30,7 @@ import com.firenio.baseio.component.LoggerChannelOpenListener;
 import com.firenio.baseio.component.NioEventLoopGroup;
 import com.firenio.baseio.component.NioSocketChannel;
 import com.firenio.baseio.component.SslContextBuilder;
+import com.firenio.baseio.concurrent.ThreadEventLoopGroup;
 import com.firenio.baseio.protocol.Frame;
 
 import test.test.ITestThread;
@@ -84,7 +85,7 @@ public class TestLoadClient1 extends ITestThread {
 
             @Override
             public void accept(NioSocketChannel channel, Frame frame) throws Exception {
-                addCount(40000);
+                addCount(80000);
                 if (debug) {
                     count.decrementAndGet();
                 }
@@ -104,10 +105,11 @@ public class TestLoadClient1 extends ITestThread {
             context.setSslContext(SslContextBuilder.forClient(true).build());
         }
         context.setPrintConfig(false);
-        context.setWorkEventQueueSize(1024 * 256);
-        context.setEnableWorkEventLoop(TestLoadServer.ENABLE_WORK_EVENT_LOOP);
-        context.addChannelEventListener(new LoggerChannelOpenListener());
         context.setProtocolCodec(new FixedLengthCodec());
+        if (TestLoadServer.ENABLE_WORK_EVENT_LOOP) {
+            context.setExecutorEventLoopGroup(
+                    new ThreadEventLoopGroup("ep", 1024 * 256));
+        }
         context.connect();
     }
 

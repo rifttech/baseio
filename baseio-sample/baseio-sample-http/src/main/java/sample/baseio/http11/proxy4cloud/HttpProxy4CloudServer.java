@@ -138,15 +138,13 @@ public class HttpProxy4CloudServer {
                                 }
                                 f.setResponseHeader(header.key(), header.value().getBytes());
                             }
-                            f.getResponseHeaders().remove(HttpHeader.Content_Length.getId());
+                            f.removeResponseHeader(HttpHeader.Content_Length);
                             if (res.getContent() != null) {
                                 f.write(res.getContent());
-                            } else if ("chunked".equalsIgnoreCase(res.getResponse_headers()
-                                    .get(HttpHeader.Transfer_Encoding.getId()))) {
-                                f.getResponseHeaders().remove(HttpHeader.Transfer_Encoding.getId());
-                                f.getResponseHeaders().remove(HttpHeader.Content_Encoding.getId());
-                                f.write("server response is chunked, not supported now."
-                                        .getBytes());
+                            } else if (res.isChunked()) {
+                                f.removeResponseHeader(HttpHeader.Transfer_Encoding);
+                                f.removeResponseHeader(HttpHeader.Content_Encoding);
+                                f.write("not support chunked now.".getBytes());
 
                             }
                             ch_src.flush(f);

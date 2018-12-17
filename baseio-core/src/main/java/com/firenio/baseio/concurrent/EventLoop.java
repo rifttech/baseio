@@ -15,25 +15,153 @@
  */
 package com.firenio.baseio.concurrent;
 
-import java.util.concurrent.Executor;
+import java.util.concurrent.BlockingQueue;
 
-public interface EventLoop extends Runnable, Executor {
+import com.firenio.baseio.LifeCycleUtil;
+import com.firenio.baseio.component.FastThreadLocalThread;
+import com.firenio.baseio.log.Logger;
+import com.firenio.baseio.log.LoggerFactory;
 
-    EventLoopGroup getGroup();
+public abstract class EventLoop implements Runnable {
 
-    Thread getMonitor();
+    private static final Logger   logger       = LoggerFactory.getLogger(EventLoop.class);
+    private EventLoopGroup        defaultGroup = new DefaultEventLoopGroup(this);
+    private FastThreadLocalThread monitor      = null;
+    private volatile boolean      running      = false;
 
-    boolean inEventLoop();
+    public final void assertInEventLoop() {
+        assertInEventLoop("this operation must eval in event loop");
+    }
 
-    boolean inEventLoop(Thread thread);
+    public final void assertInEventLoop(String msg) {
+        if (!inEventLoop()) {
+            throw new RuntimeException(msg);
+        }
+    }
 
-    boolean isRunning();
+    protected void doLoop() throws Exception {}
 
-    void startup(String threadName) throws Exception;
+    protected void doStartup() throws Exception {}
 
-    //FIXME stop 之前处理剩下的资源
-    void stop();
+    protected void doStop() {}
 
-    void wakeup();
+    public EventLoopGroup getGroup() {
+        return defaultGroup;
+    }
+
+    public abstract BlockingQueue<Runnable> getJobs();
+
+    public int getMaxQueueSize() {
+        return getGroup().getMaxQueueSize();
+    }
+
+    public Thread getMonitor() {
+        return monitor;
+    }
+
+    public boolean inEventLoop() {
+        return inEventLoop(Thread.currentThread());
+    }
+
+    public boolean inEventLoop(Thread thread) {
+        return getMonitor() == thread;
+    }
+
+    public boolean isRunning() {
+        return running;
+    }
+
+    @Override
+    public void run() {
+        for (;;) {
+            if (!running) {
+                try {
+                    doStop();
+                } catch (Throwable e) {
+                    logger.error(e.getMessage(), e);
+                }
+                return;
+            }
+            try {
+                doLoop();
+            } catch (Throwable e) {
+                logger.error(e.getMessage(), e);
+            }
+        }
+    }
+
+    public void startup(String threadName) throws Exception {
+        synchronized (this) {
+            if (running) {
+                return;
+            }
+            this.running = true;
+            this.monitor = new FastThreadLocalThread(this, threadName);
+            this.doStartup();
+            EventLoopListener listener = getGroup().getEventLoopListener();
+            if (listener != null) {
+                listener.onStartup(this);
+            }
+            this.monitor.start();
+        }
+    }
+
+    public void stop() {
+        synchronized (this) {
+            if (!running) {
+                return;
+            }
+            running = false;
+            try {
+                wakeup();
+            } catch (Throwable e) {
+                logger.error(e.getMessage(), e);
+            }
+            //            if (!inEventLoop()) {
+            //                for (; !isStopped();) {
+            //                    Util.sleep(4);
+            //                }
+            //            }
+            EventLoopListener l = getGroup().getEventLoopListener();
+            if (l != null) {
+                try {
+                    l.onStop(this);
+                } catch (Exception e) {
+                    logger.error(e.getMessage(), e);
+                }
+            }
+        }
+    }
+
+    public void wakeup() {}
+
+    class DefaultEventLoopGroup extends EventLoopGroup {
+
+        private EventLoop eventLoop;
+
+        DefaultEventLoopGroup(EventLoop eventLoop) {
+            super("");
+            this.eventLoop = eventLoop;
+        }
+
+        @Override
+        protected void doStart() throws Exception {}
+
+        @Override
+        protected void doStop() {
+            LifeCycleUtil.stop(eventLoop);
+        }
+
+        @Override
+        public EventLoop getEventLoop(int index) {
+            return eventLoop;
+        }
+
+        @Override
+        public EventLoop getNext() {
+            return eventLoop;
+        }
+
+    }
 
 }

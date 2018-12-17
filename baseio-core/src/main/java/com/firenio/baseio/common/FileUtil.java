@@ -41,6 +41,13 @@ public class FileUtil {
 
     private static final byte[]      SKIP_BYTE_BUFFER = new byte[2048];
 
+    public static interface OnDirectoryScan {
+
+        void onDirectory(File directory) throws Exception;
+
+        void onFile(File file) throws Exception;
+    }
+
     public static void cleanDirectory(File directory) throws IOException {
         if (!directory.exists()) {
             return;
@@ -350,14 +357,20 @@ public class FileUtil {
     }
 
     public static List<String> readLines(Reader input) throws IOException {
-        BufferedReader reader = toBufferedReader(input);
-        List<String> list = new ArrayList<>();
-        String line = reader.readLine();
-        while (line != null) {
-            list.add(line);
-            line = reader.readLine();
+        BufferedReader reader = null;
+        try {
+            reader = toBufferedReader(input);
+            List<String> list = new ArrayList<>();
+            String line = reader.readLine();
+            while (line != null) {
+                list.add(line);
+                line = reader.readLine();
+            }
+            return list;
+        } finally {
+            Util.close(reader);
+            Util.close(input);
         }
-        return list;
     }
 
     public static Properties readProperties(InputStream inputStream, Charset charset)
@@ -378,11 +391,6 @@ public class FileUtil {
         return readPropertiesByCls(file, ENCODING);
     }
 
-    public static Properties readPropertiesByCls(String file, ClassLoader classLoader)
-            throws IOException {
-        return readPropertiesByCls(file, ENCODING, classLoader);
-    }
-
     public static Properties readPropertiesByCls(String file, Charset charset) throws IOException {
         return readPropertiesByCls(file, charset, CLASS_LOADER);
     }
@@ -394,6 +402,11 @@ public class FileUtil {
             throw new FileNotFoundException(file);
         }
         return readProperties(inputStream, charset);
+    }
+
+    public static Properties readPropertiesByCls(String file, ClassLoader classLoader)
+            throws IOException {
+        return readPropertiesByCls(file, ENCODING, classLoader);
     }
 
     public static Properties readPropertiesByFile(File file, Charset charset) throws IOException {
@@ -570,13 +583,6 @@ public class FileUtil {
         FileOutputStream fos = new FileOutputStream(realFile);
         properties.store(fos, "");
         Util.close(fos);
-    }
-
-    public static interface OnDirectoryScan {
-
-        void onDirectory(File directory) throws Exception;
-
-        void onFile(File file) throws Exception;
     }
 
 }

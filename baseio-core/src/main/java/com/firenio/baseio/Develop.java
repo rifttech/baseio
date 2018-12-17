@@ -23,10 +23,10 @@ import com.firenio.baseio.log.Logger;
  */
 public class Develop {
 
-    public static final boolean DEBUG = Options.isDevelopDebug();
+    public static final int DEBUG_ERROR_LEVEL = Options.getDebugErrorLevel();
 
-    public static final void printException(Logger logger, Throwable e) {
-        if (DEBUG) {
+    public static final void printException(Logger logger, Throwable e, int level) {
+        if (level > DEBUG_ERROR_LEVEL) {
             logger.error(e.getMessage(), e);
         } else {
             logger.debug(e.getMessage(), e);

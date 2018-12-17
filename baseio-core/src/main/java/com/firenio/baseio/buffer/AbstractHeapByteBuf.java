@@ -31,7 +31,7 @@ public abstract class AbstractHeapByteBuf extends AbstractByteBuf {
         super(allocator);
         this.memory = memory;
     }
-    
+
     @Override
     public byte absByte(int pos) {
         return memory[pos];
@@ -273,9 +273,9 @@ public abstract class AbstractHeapByteBuf extends AbstractByteBuf {
     }
 
     @Override
-    public int indexOf(int pos, byte b) {
-        int p = ix(pos);
-        int l = limit;
+    public int indexOf(byte b, int absPos, int size) {
+        int p = absPos;
+        int l = p + size;
         byte[] m = memory;
         for (; p < l; p++) {
             if (m[p] == b) {
@@ -284,11 +284,11 @@ public abstract class AbstractHeapByteBuf extends AbstractByteBuf {
         }
         return -1;
     }
-    
+
     @Override
-    public int lastIndexOf(byte b) {
-        int p = limit;
-        int l = position - 1;
+    public int lastIndexOf(byte b, int absPos, int size) {
+        int p = absPos;
+        int l = p - size - 1;
         byte[] m = memory;
         for (; p > l; p--) {
             if (m[p] == b) {

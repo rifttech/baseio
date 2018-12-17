@@ -19,14 +19,15 @@ import com.alibaba.fastjson.JSON;
 import com.firenio.baseio.Options;
 import com.firenio.baseio.buffer.ByteBuf;
 import com.firenio.baseio.codec.http11.HttpCodec;
+import com.firenio.baseio.codec.http11.HttpCodecLite;
 import com.firenio.baseio.codec.http11.HttpFrameLite;
-import com.firenio.baseio.codec.http11.HttpLiteCodec;
 import com.firenio.baseio.codec.http11.HttpStatic;
 import com.firenio.baseio.codec.http11.HttpStatus;
 import com.firenio.baseio.common.Encoding;
 import com.firenio.baseio.common.Util;
 import com.firenio.baseio.component.ChannelAcceptor;
 import com.firenio.baseio.component.IoEventHandle;
+import com.firenio.baseio.component.LoggerChannelOpenListener;
 import com.firenio.baseio.component.NioEventLoopGroup;
 import com.firenio.baseio.component.NioSocketChannel;
 import com.firenio.baseio.log.DebugUtil;
@@ -45,7 +46,7 @@ public class TestHttpLoadServerTFB {
     public static void main(String[] args) throws Exception {
         LoggerFactory.setEnableSLF4JLogger(false);
         LoggerFactory.setLogLevel(LoggerFactory.LEVEL_INFO);
-        Options.setDevelopDebug(false);
+        Options.setDebugErrorLevel(1);
         Options.setChannelReadFirst(false);
         Options.setBytebufRecycle(false);
         boolean lite = Util.isSystemTrue("lite");
@@ -76,7 +77,7 @@ public class TestHttpLoadServerTFB {
 
         };
 
-        ProtocolCodec codec = lite ? new HttpLiteCodec("baseio", 1024 * 16)
+        ProtocolCodec codec = lite ? new HttpCodecLite("baseio", 1024 * 16)
                 : new HttpCodec("baseio", 1024 * 16);
         NioEventLoopGroup group = new NioEventLoopGroup();
         group.setMemoryPoolCapacity(1024 * 128);

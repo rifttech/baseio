@@ -469,33 +469,31 @@ public class HttpCodec extends ProtocolCodec {
         src.markP();
         int maybeRead = limit - length;
         if (src.remaining() > maybeRead) {
-            src.markL();
-            src.limit(maybeRead);
-            for (; src.hasRemaining();) {
-                byte b = src.getByte();
+            int count = src.absPos() + maybeRead;
+            for (int i = src.absPos(); i < count; i++) {
+                byte b = src.absByte(i);
                 if (b == N) {
                     int p = line.length() - 1;
                     if (line.charAt(p) == R) {
                         line.setLength(p);
                     }
-                    src.resetL();
+                    src.absPos(i + 1);
                     return true;
                 } else {
                     line.append((char) (b & 0xff));
                 }
             }
-            src.resetL();
-            if (src.hasRemaining()) {
-                throw new IOException("max http header length " + limit);
-            }
+            throw new IOException("max http header length " + limit);
         } else {
-            for (; src.hasRemaining();) {
-                byte b = src.getByte();
+            int count = src.absPos() + src.remaining();
+            for (int i = src.absPos(); i < count; i++) {
+                byte b = src.absByte(i);
                 if (b == N) {
                     int p = line.length() - 1;
                     if (line.charAt(p) == R) {
                         line.setLength(p);
                     }
+                    src.absPos(i + 1);
                     return true;
                 } else {
                     line.append((char) (b & 0xff));

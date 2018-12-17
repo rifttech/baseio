@@ -17,7 +17,7 @@ package test.others.algorithm;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import com.firenio.baseio.common.UnsafeUtil;
+import com.firenio.baseio.common.Unsafe;
 
 
 
@@ -59,8 +59,8 @@ public final class Lz4RawCompressor {
 
     public int compress(byte[] input, int inputOffset, int inputLength, byte[] output,
             int outputOffset, int maxOutputLength) {
-        long inputAddress = UnsafeUtil.ARRAY_BASE_OFFSET + inputOffset;
-        long outputAddress = UnsafeUtil.ARRAY_BASE_OFFSET + outputOffset;
+        long inputAddress = Unsafe.ARRAY_BASE_OFFSET + inputOffset;
+        long outputAddress = Unsafe.ARRAY_BASE_OFFSET + outputOffset;
 
         return compress(input, inputAddress, inputLength, output, outputAddress, maxOutputLength,
                 table);
@@ -72,13 +72,13 @@ public final class Lz4RawCompressor {
         long inputLimit;
         if (input.isDirect()) {
             inputBase = null;
-            long address = UnsafeUtil.addressOffset(input);
+            long address = Unsafe.addressOffset(input);
             inputAddress = address + input.position();
             inputLimit = address + input.limit();
         } else if (input.hasArray()) {
             inputBase = input.array();
-            inputAddress = UnsafeUtil.ARRAY_BASE_OFFSET + input.arrayOffset() + input.position();
-            inputLimit = UnsafeUtil.ARRAY_BASE_OFFSET + input.arrayOffset() + input.limit();
+            inputAddress = Unsafe.ARRAY_BASE_OFFSET + input.arrayOffset() + input.position();
+            inputLimit = Unsafe.ARRAY_BASE_OFFSET + input.arrayOffset() + input.limit();
         } else {
             throw new IllegalArgumentException(
                     "Unsupported input ByteBuffer implementation " + input.getClass().getName());
@@ -89,13 +89,13 @@ public final class Lz4RawCompressor {
         long outputLimit;
         if (output.isDirect()) {
             outputBase = null;
-            long address = UnsafeUtil.addressOffset(output);
+            long address = Unsafe.addressOffset(output);
             outputAddress = address + output.position();
             outputLimit = address + output.limit();
         } else if (output.hasArray()) {
             outputBase = output.array();
-            outputAddress = UnsafeUtil.ARRAY_BASE_OFFSET + output.arrayOffset() + output.position();
-            outputLimit = UnsafeUtil.ARRAY_BASE_OFFSET + output.arrayOffset() + output.limit();
+            outputAddress = Unsafe.ARRAY_BASE_OFFSET + output.arrayOffset() + output.position();
+            outputLimit = Unsafe.ARRAY_BASE_OFFSET + output.arrayOffset() + output.limit();
         } else {
             throw new IllegalArgumentException(
                     "Unsupported output ByteBuffer implementation " + output.getClass().getName());
@@ -153,10 +153,10 @@ public final class Lz4RawCompressor {
 
         // First Byte
         // put position in hash
-        table[hash(UnsafeUtil.getLong(inputBase, input), mask)] = (int) (input - inputAddress);
+        table[hash(Unsafe.getLong(inputBase, input), mask)] = (int) (input - inputAddress);
 
         input++;
-        int nextHash = hash(UnsafeUtil.getLong(inputBase, input), mask);
+        int nextHash = hash(Unsafe.getLong(inputBase, input), mask);
 
         boolean done = false;
         do {
@@ -180,16 +180,16 @@ public final class Lz4RawCompressor {
 
                 // get position on hash
                 matchIndex = inputAddress + table[hash];
-                nextHash = hash(UnsafeUtil.getLong(inputBase, nextInputIndex), mask);
+                nextHash = hash(Unsafe.getLong(inputBase, nextInputIndex), mask);
 
                 // put position on hash
                 table[hash] = (int) (input - inputAddress);
-            } while (UnsafeUtil.getInt(inputBase, matchIndex) != UnsafeUtil.getInt(inputBase, input)
+            } while (Unsafe.getInt(inputBase, matchIndex) != Unsafe.getInt(inputBase, input)
                     || matchIndex + MAX_DISTANCE < input);
 
             // catch up
-            while ((input > anchor) && (matchIndex > inputAddress) && (UnsafeUtil.getByte(inputBase,
-                    input - 1) == UnsafeUtil.getByte(inputBase, matchIndex - 1))) {
+            while ((input > anchor) && (matchIndex > inputAddress) && (Unsafe.getByte(inputBase,
+                    input - 1) == Unsafe.getByte(inputBase, matchIndex - 1))) {
                 --input;
                 --matchIndex;
             }
@@ -218,24 +218,24 @@ public final class Lz4RawCompressor {
                 }
 
                 long position = input - 2;
-                table[hash(UnsafeUtil.getLong(inputBase, position),
+                table[hash(Unsafe.getLong(inputBase, position),
                         mask)] = (int) (position - inputAddress);
 
                 // Test next position
-                int hash = hash(UnsafeUtil.getLong(inputBase, input), mask);
+                int hash = hash(Unsafe.getLong(inputBase, input), mask);
                 matchIndex = inputAddress + table[hash];
                 table[hash] = (int) (input - inputAddress);
 
-                if (matchIndex + MAX_DISTANCE < input || UnsafeUtil.getInt(inputBase,
-                        matchIndex) != UnsafeUtil.getInt(inputBase, input)) {
+                if (matchIndex + MAX_DISTANCE < input || Unsafe.getInt(inputBase,
+                        matchIndex) != Unsafe.getInt(inputBase, input)) {
                     input++;
-                    nextHash = hash(UnsafeUtil.getLong(inputBase, input), mask);
+                    nextHash = hash(Unsafe.getLong(inputBase, input), mask);
                     break;
                 }
 
                 // go for another match
                 tokenAddress = output++;
-                UnsafeUtil.putByte(outputBase, tokenAddress, (byte) 0);
+                Unsafe.putByte(outputBase, tokenAddress, (byte) 0);
             }
         } while (!done);
 
@@ -251,7 +251,7 @@ public final class Lz4RawCompressor {
 
         final long outputLimit = output + literalLength;
         do {
-            UnsafeUtil.putLong(outputBase, output, UnsafeUtil.getLong(inputBase, input));
+            Unsafe.putLong(outputBase, output, Unsafe.getLong(inputBase, input));
             input += SIZE_OF_LONG;
             output += SIZE_OF_LONG;
         } while (output < outputLimit);
@@ -262,27 +262,27 @@ public final class Lz4RawCompressor {
     private static long emitMatch(Object outputBase, long output, long tokenAddress, short offset,
             long matchLength) {
         // write offset
-        UnsafeUtil.putShort(outputBase, output, offset);
+        Unsafe.putShort(outputBase, output, offset);
         output += SIZE_OF_SHORT;
 
         // write match length
         if (matchLength >= ML_MASK) {
-            UnsafeUtil.putByte(outputBase, tokenAddress,
-                    (byte) (UnsafeUtil.getByte(outputBase, tokenAddress) | ML_MASK));
+            Unsafe.putByte(outputBase, tokenAddress,
+                    (byte) (Unsafe.getByte(outputBase, tokenAddress) | ML_MASK));
             long remaining = matchLength - ML_MASK;
             while (remaining >= 510) {
-                UnsafeUtil.putShort(outputBase, output, (short) 0xFFFF);
+                Unsafe.putShort(outputBase, output, (short) 0xFFFF);
                 output += SIZE_OF_SHORT;
                 remaining -= 510;
             }
             if (remaining >= 255) {
-                UnsafeUtil.putByte(outputBase, output++, (byte) 255);
+                Unsafe.putByte(outputBase, output++, (byte) 255);
                 remaining -= 255;
             }
-            UnsafeUtil.putByte(outputBase, output++, (byte) remaining);
+            Unsafe.putByte(outputBase, output++, (byte) remaining);
         } else {
-            UnsafeUtil.putByte(outputBase, tokenAddress,
-                    (byte) (UnsafeUtil.getByte(outputBase, tokenAddress) | matchLength));
+            Unsafe.putByte(outputBase, tokenAddress,
+                    (byte) (Unsafe.getByte(outputBase, tokenAddress) | matchLength));
         }
 
         return output;
@@ -293,8 +293,8 @@ public final class Lz4RawCompressor {
 
         // first, compare long at a time
         while (current < matchLimit - (SIZE_OF_LONG - 1)) {
-            long diff = UnsafeUtil.getLong(inputBase, matchStart)
-                    ^ UnsafeUtil.getLong(inputBase, current);
+            long diff = Unsafe.getLong(inputBase, matchStart)
+                    ^ Unsafe.getLong(inputBase, current);
             if (diff != 0) {
                 current += Long.numberOfTrailingZeros(diff) >> 3;
                 return (int) (current - start);
@@ -304,19 +304,19 @@ public final class Lz4RawCompressor {
             matchStart += SIZE_OF_LONG;
         }
 
-        if (current < matchLimit - (SIZE_OF_INT - 1) && UnsafeUtil.getInt(inputBase,
-                matchStart) == UnsafeUtil.getInt(inputBase, current)) {
+        if (current < matchLimit - (SIZE_OF_INT - 1) && Unsafe.getInt(inputBase,
+                matchStart) == Unsafe.getInt(inputBase, current)) {
             current += SIZE_OF_INT;
             matchStart += SIZE_OF_INT;
         }
 
-        if (current < matchLimit - (SIZE_OF_SHORT - 1) && UnsafeUtil.getShort(inputBase,
-                matchStart) == UnsafeUtil.getShort(inputBase, current)) {
+        if (current < matchLimit - (SIZE_OF_SHORT - 1) && Unsafe.getShort(inputBase,
+                matchStart) == Unsafe.getShort(inputBase, current)) {
             current += SIZE_OF_SHORT;
             matchStart += SIZE_OF_SHORT;
         }
 
-        if (current < matchLimit && UnsafeUtil.getByte(inputBase, matchStart) == UnsafeUtil
+        if (current < matchLimit && Unsafe.getByte(inputBase, matchStart) == Unsafe
                 .getByte(inputBase, current)) {
             ++current;
         }
@@ -327,23 +327,23 @@ public final class Lz4RawCompressor {
     private static long emitLastLiteral(final Object outputBase, final long outputAddress,
             final Object inputBase, final long inputAddress, final long length) {
         long output = encodeRunLength(outputBase, outputAddress, length);
-        UnsafeUtil.copyMemory(inputBase, inputAddress, outputBase, output, length);
+        Unsafe.copyMemory(inputBase, inputAddress, outputBase, output, length);
 
         return output + length;
     }
 
     private static long encodeRunLength(final Object base, long output, final long length) {
         if (length >= RUN_MASK) {
-            UnsafeUtil.putByte(base, output++, (byte) (RUN_MASK << ML_BITS));
+            Unsafe.putByte(base, output++, (byte) (RUN_MASK << ML_BITS));
 
             long remaining = length - RUN_MASK;
             while (remaining >= 255) {
-                UnsafeUtil.putByte(base, output++, (byte) 255);
+                Unsafe.putByte(base, output++, (byte) 255);
                 remaining -= 255;
             }
-            UnsafeUtil.putByte(base, output++, (byte) remaining);
+            Unsafe.putByte(base, output++, (byte) remaining);
         } else {
-            UnsafeUtil.putByte(base, output++, (byte) (length << ML_BITS));
+            Unsafe.putByte(base, output++, (byte) (length << ML_BITS));
         }
 
         return output;

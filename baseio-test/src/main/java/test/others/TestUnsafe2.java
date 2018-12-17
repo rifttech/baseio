@@ -17,7 +17,7 @@ package test.others;
 
 import java.nio.ByteBuffer;
 
-import com.firenio.baseio.common.UnsafeUtil;
+import com.firenio.baseio.common.Unsafe;
 
 /**
  * @author wangkai
@@ -41,11 +41,11 @@ public class TestUnsafe2 {
 
     static void testRadByteUnsafeDirectByteBuffer(int time, ByteBuffer array) {
         long e = 0;
-        long address = UnsafeUtil.addressOffset(array);
+        long address = Unsafe.addressOffset(array);
         long end = address + array.capacity();
         for (int i = 0; i < time; i++) {
             for (long j = address; j < end; j++) {
-                byte b = UnsafeUtil.getByte(j);
+                byte b = Unsafe.getByte(j);
                 e++;
             }
         }

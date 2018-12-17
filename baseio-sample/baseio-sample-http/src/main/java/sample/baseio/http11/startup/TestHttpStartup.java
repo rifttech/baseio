@@ -31,7 +31,7 @@ public class TestHttpStartup {
     public static void main(String[] args) throws Exception {
 
         Options.setByteBufDebug(true);
-        Options.setDevelopDebug(true);
+        Options.setDebugErrorLevel(9);
         ApplicationBootstrap.startup("sample.baseio.http11.startup.TestHttpBootstrapEngine",
                 ApplicationBootstrap.withDefault(new ClassPathScaner() {
 

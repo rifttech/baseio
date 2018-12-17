@@ -15,20 +15,47 @@
  */
 package com.firenio.baseio.concurrent;
 
-import com.firenio.baseio.component.ChannelContext;
+import com.firenio.baseio.common.Util;
 
-public class ThreadEventLoopGroup extends AbstractExecutorEventLoopGroup {
+public class ThreadEventLoopGroup extends EventLoopGroup {
 
-    private ChannelContext context;
+    private ThreadEventLoop[] executorEventLoops;
 
-    public ThreadEventLoopGroup(ChannelContext context, String eventLoopName, int eventLoopSize) {
-        super(eventLoopName, eventLoopSize);
-        this.context = context;
+    public ThreadEventLoopGroup() {
+        this("event-process");
+    }
+
+    public ThreadEventLoopGroup(String eventLoopName) {
+        this(eventLoopName, 1024 * 4);
+    }
+
+    public ThreadEventLoopGroup(String eventLoopName, int maxQueueSize) {
+        this(eventLoopName, Util.availableProcessors() * 2, maxQueueSize);
+    }
+
+    public ThreadEventLoopGroup(String eventLoopName, int eventLoopSize, int maxQueueSize) {
+        super(eventLoopName, eventLoopSize, maxQueueSize);
     }
 
     @Override
-    protected ExecutorEventLoop newEventLoop(int coreIndex) {
-        return new ThreadEventLoop(this, context);
+    public EventLoop getEventLoop(int index) {
+        return executorEventLoops[index];
+    }
+
+    @Override
+    public ThreadEventLoop getNext() {
+        return executorEventLoops[getNextEventLoopIndex()];
+    }
+
+    @Override
+    protected EventLoop[] initEventLoops() {
+        executorEventLoops = new ThreadEventLoop[getEventLoopSize()];
+        return executorEventLoops;
+    }
+
+    @Override
+    protected ThreadEventLoop newEventLoop(int coreIndex) {
+        return new ThreadEventLoop(this);
     }
 
 }

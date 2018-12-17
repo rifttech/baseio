@@ -79,7 +79,12 @@ public abstract class AbstractByteBuf implements ByteBuf {
 
     @Override
     public int indexOf(byte b) {
-        return indexOf(0, b);
+        return indexOf(b, absPos());
+    }
+
+    @Override
+    public int indexOf(byte b, int absPos) {
+        return indexOf(b, absPos, remaining());
     }
 
     @Override
@@ -89,6 +94,16 @@ public abstract class AbstractByteBuf implements ByteBuf {
 
     protected int ix(int index) {
         return offset + index;
+    }
+
+    @Override
+    public int lastIndexOf(byte b) {
+        return lastIndexOf(b, absLimit());
+    }
+
+    @Override
+    public int lastIndexOf(byte b, int absPos) {
+        return lastIndexOf(b, absPos, remaining());
     }
 
     @Override

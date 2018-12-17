@@ -34,8 +34,10 @@ import com.firenio.baseio.protocol.TextFrame;
  */
 public class HttpFrameLite extends AbstractFrame implements NamedFrame, TextFrame {
 
+    private byte[]              connection;
     private byte[]              content;
     private int                 contentLength;
+    private byte[]              contentType;
     private int                 decodeState;
     private int                 headerLength;
     private int                 method;
@@ -43,14 +45,18 @@ public class HttpFrameLite extends AbstractFrame implements NamedFrame, TextFram
     private String              requestURL;
     private IntMap<byte[]>      response_headers;
     private int                 status           = HttpStatus.C200.getStatus();
-    private byte[]              contentType;
-    private byte[]              connection;
 
     void clear(Collection<?> coll) {
         if (coll == null) {
             return;
         }
         coll.clear();
+    }
+
+    void clear(IntMap<byte[]> map) {
+        if (map != null) {
+            map.clear();
+        }
     }
 
     void clear(Map<?, ?> map) {
@@ -60,12 +66,20 @@ public class HttpFrameLite extends AbstractFrame implements NamedFrame, TextFram
         map.clear();
     }
 
+    public byte[] getConnection() {
+        return connection;
+    }
+
     public byte[] getContent() {
         return content;
     }
 
     public int getContentLength() {
         return contentLength;
+    }
+
+    public byte[] getContentType() {
+        return contentType;
     }
 
     public int getDecodeState() {
@@ -97,7 +111,7 @@ public class HttpFrameLite extends AbstractFrame implements NamedFrame, TextFram
     public String getRequestParam(String key) {
         return params.get(key);
     }
-
+    
     public Map<String, String> getRequestParams() {
         return params;
     }
@@ -150,6 +164,12 @@ public class HttpFrameLite extends AbstractFrame implements NamedFrame, TextFram
         return method == HttpMethod.GET.getId();
     }
 
+    public void removeResponseHeader(HttpHeader header){
+        if (response_headers != null) {
+            response_headers.remove(header.getId());
+        }
+    }
+
     public HttpFrameLite reset() {
         this.content = null;
         this.requestURL = null;
@@ -164,10 +184,8 @@ public class HttpFrameLite extends AbstractFrame implements NamedFrame, TextFram
         return this;
     }
 
-    void clear(IntMap<byte[]> map) {
-        if (map != null) {
-            map.clear();
-        }
+    public void setConnection(byte[] connection) {
+        this.connection = connection;
     }
 
     public void setContent(byte[] content) {
@@ -176,6 +194,10 @@ public class HttpFrameLite extends AbstractFrame implements NamedFrame, TextFram
 
     public void setContentLength(int contentLength) {
         this.contentLength = contentLength;
+    }
+
+    public void setContentType(byte[] contentType) {
+        this.contentType = contentType;
     }
 
     public void setDecodeState(int decodeState) {
@@ -193,7 +215,7 @@ public class HttpFrameLite extends AbstractFrame implements NamedFrame, TextFram
     public void setRequestParams(Map<String, String> params) {
         this.params = params;
     }
-
+    
     public void setRequestURL(String url) {
         this.requestURL = url;
     }
@@ -220,22 +242,6 @@ public class HttpFrameLite extends AbstractFrame implements NamedFrame, TextFram
             params = new HashMap<>();
         }
         this.params.put(key, value);
-    }
-    
-    public byte[] getContentType() {
-        return contentType;
-    }
-
-    public void setContentType(byte[] contentType) {
-        this.contentType = contentType;
-    }
-
-    public byte[] getConnection() {
-        return connection;
-    }
-
-    public void setConnection(byte[] connection) {
-        this.connection = connection;
     }
 
     public void setStatus(HttpStatus status) {

@@ -18,7 +18,7 @@ package com.firenio.baseio.buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import com.firenio.baseio.common.UnsafeUtil;
+import com.firenio.baseio.common.Unsafe;
 
 public abstract class AbstractDirectByteBuf extends AbstractByteBuf {
 
@@ -274,26 +274,44 @@ public abstract class AbstractDirectByteBuf extends AbstractByteBuf {
     }
 
     @Override
-    public int indexOf(int pos, byte b) {
+    public int indexOf(byte b, int absPos, int size) {
         ByteBuffer m = memory;
-        int p = ix(pos);
-        int l = m.limit();
-        for (; p < l; p++) {
-            if (m.get(p) == b) {
-                return p;
+        int p = absPos;
+        int l = p + size;
+        if (Unsafe.ENABLE) {
+            long addr = Unsafe.addressOffset(m);
+            for (; p < l; p++) {
+                if (Unsafe.getByte(addr + ((long) p << 0)) == b) {
+                    return p;
+                }
+            }
+        } else {
+            for (; p < l; p++) {
+                if (m.get(p) == b) {
+                    return p;
+                }
             }
         }
         return -1;
     }
 
     @Override
-    public int lastIndexOf(byte b) {
+    public int lastIndexOf(byte b, int absPos, int size) {
         ByteBuffer m = memory;
-        int p = m.limit();
-        int l = m.position() - 1;
-        for (; p > l; p--) {
-            if (m.get(p) == b) {
-                return p;
+        int p = absPos;
+        int l = p - size - 1;
+        if (Unsafe.ENABLE) {
+            long addr = Unsafe.addressOffset(m);
+            for (; p > l; p--) {
+                if (Unsafe.getByte(addr + ((long) p << 0)) == b) {
+                    return p;
+                }
+            }
+        } else {
+            for (; p > l; p--) {
+                if (m.get(p) == b) {
+                    return p;
+                }
             }
         }
         return -1;
@@ -426,11 +444,12 @@ public abstract class AbstractDirectByteBuf extends AbstractByteBuf {
 
     @Override
     protected int read0(ByteBuf src, int read) {
-        long dstAddr = UnsafeUtil.addressOffset(memory) + memory.position();
+        //FIXME ..unsafe enable ?
+        long dstAddr = Unsafe.addressOffset(memory) + memory.position();
         if (src.hasArray()) {
-            UnsafeUtil.copyFromArray(src.array(), src.absPos(), dstAddr, read);
+            Unsafe.copyFromArray(src.array(), src.absPos(), dstAddr, read);
         } else {
-            UnsafeUtil.copyMemory(src.nioBuffer(), dstAddr, read);
+            Unsafe.copyMemory(src.nioBuffer(), dstAddr, read);
         }
         src.skip(read);
         skip(read);
@@ -439,11 +458,12 @@ public abstract class AbstractDirectByteBuf extends AbstractByteBuf {
 
     @Override
     protected int read0(ByteBuffer src, int read) {
-        long dstAddr = UnsafeUtil.addressOffset(memory) + memory.position();
+        //FIXME ..unsafe enable ?
+        long dstAddr = Unsafe.addressOffset(memory) + memory.position();
         if (src.hasArray()) {
-            UnsafeUtil.copyFromArray(src, dstAddr, read);
+            Unsafe.copyFromArray(src, dstAddr, read);
         } else {
-            UnsafeUtil.copyMemory(src, dstAddr, read);
+            Unsafe.copyMemory(src, dstAddr, read);
         }
         src.position(src.position() + read);
         skip(read);
@@ -478,7 +498,7 @@ public abstract class AbstractDirectByteBuf extends AbstractByteBuf {
         return this;
     }
 
-    private long toUnsignedInt(int value) {
+    private static long toUnsignedInt(int value) {
         if (value < 0) {
             return value & 0xffffffffffffffffL;
         }

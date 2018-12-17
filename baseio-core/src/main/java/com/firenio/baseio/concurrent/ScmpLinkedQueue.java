@@ -15,7 +15,7 @@
  */
 package com.firenio.baseio.concurrent;
 
-import com.firenio.baseio.common.UnsafeUtil;
+import com.firenio.baseio.common.Unsafe;
 
 public class ScmpLinkedQueue<V> extends ScspLinkedQueue<V> {
 
@@ -23,7 +23,7 @@ public class ScmpLinkedQueue<V> extends ScspLinkedQueue<V> {
 
     static {
         try {
-            tailOffset = UnsafeUtil
+            tailOffset = Unsafe
                     .objectFieldOffset(ScspLinkedQueue.class.getDeclaredField("tail"));
         } catch (Exception e) {
             throw new Error(e);
@@ -33,7 +33,7 @@ public class ScmpLinkedQueue<V> extends ScspLinkedQueue<V> {
     public void offer(V v) {
         Node<V> n = new Node<V>();
         Node<V> tail = getTail();
-        if (UnsafeUtil.compareAndSwapObject(this, tailOffset, tail, n)) {
+        if (Unsafe.compareAndSwapObject(this, tailOffset, tail, n)) {
             tail.v = v;
             tail.next = n;
             incrementAndGet();
@@ -41,7 +41,7 @@ public class ScmpLinkedQueue<V> extends ScspLinkedQueue<V> {
         }
         for (;;) {
             tail = getTail();
-            if (UnsafeUtil.compareAndSwapObject(this, tailOffset, tail, n)) {
+            if (Unsafe.compareAndSwapObject(this, tailOffset, tail, n)) {
                 tail.v = v;
                 tail.next = n;
                 incrementAndGet();

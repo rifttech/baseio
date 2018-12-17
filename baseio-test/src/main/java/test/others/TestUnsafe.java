@@ -19,7 +19,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import com.firenio.baseio.common.ByteUtil;
-import com.firenio.baseio.common.UnsafeUtil;
+import com.firenio.baseio.common.Unsafe;
 import com.firenio.baseio.log.DebugUtil;
 
 /**
@@ -58,11 +58,11 @@ public class TestUnsafe {
     static void testReadByteUnsafe(int time, byte[] array) {
         int len = array.length;
         byte e = 0;
-        long address = UnsafeUtil.getArrayBaseOffset();
+        long address = Unsafe.getArrayBaseOffset();
         long end = address + len;
         for (int i = 0; i < time; i++) {
             for (long j = address; j < end; j++) {
-                e = UnsafeUtil.getByte(array, j);
+                e = Unsafe.getByte(array, j);
             }
         }
         DebugUtil.info("e={}", e);
@@ -72,11 +72,11 @@ public class TestUnsafe {
         int len = array.length;
         byte b = 1;
         long e = 0;
-        long address = UnsafeUtil.getArrayBaseOffset();
+        long address = Unsafe.getArrayBaseOffset();
         long end = address + len;
         for (int i = 0; i < time; i++) {
             for (long j = address; j < end; j++) {
-                UnsafeUtil.putByte(array, j, b);
+                Unsafe.putByte(array, j, b);
                 e++;
             }
         }
@@ -109,11 +109,11 @@ public class TestUnsafe {
 
     static void testRadByteUnsafeDirectByteBuffer(int time, ByteBuffer array) {
         byte e = 0;
-        long address = UnsafeUtil.addressOffset(array);
+        long address = Unsafe.addressOffset(array);
         long end = address + array.capacity();
         for (int i = 0; i < time; i++) {
             for (long j = address; j < end; j++) {
-                e = UnsafeUtil.getByte(j);
+                e = Unsafe.getByte(j);
             }
         }
         DebugUtil.info("e={}", e);
@@ -174,24 +174,24 @@ public class TestUnsafe {
     }
 
     static void testPutIntUnsafe(int time, ByteBuffer buffer) {
-        long address = UnsafeUtil.addressOffset(buffer);
+        long address = Unsafe.addressOffset(buffer);
         long end = address + buffer.capacity();
         for (int i = 0; i < time; i++) {
             long address1 = address;
             for (long j = address1; j < end;) {
-                UnsafeUtil.putInt(address1, 999809234);
+                Unsafe.putInt(address1, 999809234);
                 j += 4;
             }
         }
     }
 
     static void testGetIntUnsafe(int time, ByteBuffer buffer) {
-        long address = UnsafeUtil.addressOffset(buffer);
+        long address = Unsafe.addressOffset(buffer);
         long end = address + buffer.capacity();
         for (int i = 0; i < time; i++) {
             long address1 = address;
             for (long j = address1; j < end;) {
-                UnsafeUtil.getInt(address1);
+                Unsafe.getInt(address1);
                 j += 4;
             }
         }
